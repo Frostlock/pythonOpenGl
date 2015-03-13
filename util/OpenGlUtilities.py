@@ -37,21 +37,90 @@ def rotationMatrix44(angle_x, angle_y, angle_z):
 def translationMatrix44(x, y, z):
     """Makes a translation Matrix44."""
 
-    M = np.array([[1.,       0.,       0.,       0.],
+    # Translation(x,y,z)
+
+    #     | 1  0  0  x |
+    #M  = | 0  1  0  y |
+    #     | 0  0  1  z |
+    #     | 0  0  0  1 |
+
+    T = np.array([[1.,       0.,       0.,       0.],
                   [0.,       1.,       0.,       0.],
                   [0.,       0.,       1.,       0.],
                   [float(x), float(y), float(z), 1.]], 'f')
-    return M
+    return T
+
+# def old_translationMatrix44(x, y, z):
+#     """Makes a translation Matrix44."""
+#
+#     M = np.array([[1.,       0.,       0.,       float(x)],
+#                   [0.,       1.,       0.,       float(y)],
+#                   [0.,       0.,       1.,       float(z)],
+#                   [0.,       0.,       0.,       1.]], 'f')
+#     return M
+
+def old_lookAtMatrix(eye, center, up):
+    '''
+    e: eye position
+    c: lookat center
+    u: up vector
+
+    Z = normalize(e - c)
+    X = normalize(up x Z)
+    Y = Z x X
+
+    M1 is a matrix whose columns are (X, 0), (Y, 0), (Z, 0) (0,0,0,1)
+    M2 is a matrix whose columns are (1,0,0,0), (0,1,0,0), (0,0,1,0), (-e.x, -e.y, -e.z, 1)
+
+    The lookat matrix is the product of M1 and M2
+
+    L = M1 * M2
+    :param eye:
+    :param center:
+    :param up:
+    :return:
+    '''
+    Z = (eye - center).normalize()
+    X = up.cross(Z).normalize()
+    Y = Z.cross(X)
+
+    M1 = np.array([[X.x,      X.y,      X.z,      0.],
+                  [ Y.x,      Y.y,      Y.z,      0.],
+                  [ Z.x,      Z.y,      Z.z,      0.],
+                  [ 0.,       0.,       0.,       1.]], 'f')
+
+    M2 = np.array([[1.,       0.,       0.,       0.],
+                  [ 0.,       1.,       0.,       0.],
+                  [ 0.,       0.,       1.,       0.],
+                  [ -eye.x,   -eye.y,   -eye.z,   1.]], 'f')
+
+    return M1.dot(M2)
+
+def lookAtMatrix(eye, center, up):
+    '''
+    Based on http://learnopengl.com/#!Getting-started/Camera
+    :param eye:
+    :param center:
+    :param up:
+    :return:
+    '''
+    M1 = np.array([[1.,       0.,       0.,       0.],
+                  [ 0.,       1.,       0.,       0.],
+                  [ 0.,       0.,       1.,       0.],
+                  [ -eye.x,   -eye.y,   -eye.z,   1.]], 'f')
 
 
-def otranslationMatrix44(x, y, z):
-    """Makes a translation Matrix44."""
+    D = (eye - center).normalize()
+    R = up.cross(D).normalize()
+    U = D.cross(R)
 
-    M = np.array([[1.,       0.,       0.,       float(x)],
-                  [0.,       1.,       0.,       float(y)],
-                  [0.,       0.,       1.,       float(z)],
-                  [0.,       0.,       0.,       1.]], 'f')
-    return M
+    M2 = np.array([[R.x,      U.x,      D.x,      0.],
+                  [ R.y,      U.y,      D.y,      0.],
+                  [ R.z,      U.z,      D.z,      0.],
+                  [ 0.,       0.,       0.,       1.]], 'f')
+
+    return M1.dot(M2)
+
 
 class plant():
     def __init__(self,partSize):
@@ -121,3 +190,16 @@ class part():
             print root
             del self.rootIndices[i]
             return part(self.partSize,root,self)
+
+if __name__ == '__main__':
+    pass
+    from util.vec3 import vec3
+    eye = vec3(1.0, 1.0, 1.0)
+    center = vec3(0.0, 0.0, 0.0)
+    up = vec3(0.0, 0.0, 1.0)
+    M = lookAtMatrix(eye,center,up)
+    print M
+
+    # test = vec3(3,1,2)
+    # print test.length()
+    # print test.normalize()

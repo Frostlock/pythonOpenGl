@@ -15,6 +15,9 @@ from pygame.locals import *
 from OpenGL import GL
 from OpenGL.GL.ARB.vertex_array_object import glBindVertexArray
 from OpenGL import GLUT
+from OpenGL import GLU
+GLU.gluLookAt
+
 from ctypes import c_void_p
 from math import radians, degrees
 import sys
@@ -39,6 +42,46 @@ CAM_FREE = 0
 CAM_MAP = 1
 CAM_ACTOR = 2
 CAM_FIRSTPERSON = 3
+
+
+# def ResolveCamPosition():
+#     #glutil::MatrixStack tempMat;
+#     global g_sphereCamRelPos, g_camTarget
+#
+#     phi = radians(g_sphereCamRelPos[0])
+#     theta = radians(g_sphereCamRelPos[1] + 90.0)
+#
+#     fSinTheta = np.sin(theta)
+#     fCosTheta = np.cos(theta)
+#     fCosPhi = np.cos(phi)
+#     fSinPhi = np.sin(phi)
+#
+#     dirToCamera = (fSinTheta * fCosPhi, fCosTheta, fSinTheta * fSinPhi)
+#     dirToCamera[0] = dirToCamera[0] * g_sphereCamRelPos[2] + g_camTarget[0]
+#     dirToCamera[1] = dirToCamera[1] * g_sphereCamRelPos[2] + g_camTarget[1]
+#     dirToCamera[2] = dirToCamera[2] * g_sphereCamRelPos[2] + g_camTarget[2]
+#     return dirToCamera
+#
+# glm::mat4 CalcLookAtMatrix(const glm::vec3 &cameraPt, const glm::vec3 &lookPt, const glm::vec3 &upPt)
+# {
+# 	glm::vec3 lookDir = glm::normalize(lookPt - cameraPt);
+# 	glm::vec3 upDir = glm::normalize(upPt);
+#
+# 	glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, upDir));
+# 	glm::vec3 perpUpDir = glm::cross(rightDir, lookDir);
+#
+# 	glm::mat4 rotMat(1.0f);
+# 	rotMat[0] = glm::vec4(rightDir, 0.0f);
+# 	rotMat[1] = glm::vec4(perpUpDir, 0.0f);
+# 	rotMat[2] = glm::vec4(-lookDir, 0.0f);
+#
+# 	rotMat = glm::transpose(rotMat);
+#
+# 	glm::mat4 transMat(1.0f);
+# 	transMat[3] = glm::vec4(-cameraPt, 1.0f);
+#
+# 	return rotMat * transMat;
+# }
 
 class GlApplication(object):
 
@@ -396,12 +439,21 @@ class GlApplication(object):
             pygame.display.flip()
 
     def freeCamera(self):
-        playerRotation = og_util.rotationMatrix44(0, 0, radians(-180))
-        # Rotate upward to look ahead
-        rotation_matrix = og_util.rotationMatrix44(radians(135), 0, 0)
-        translation_matrix = og_util.translationMatrix44(0, 1, 1.0)
-        self.cameraMatrix = translation_matrix.dot(rotation_matrix.dot(playerRotation))
-        #self.cameraMatrix = translation_matrix
+        # OLD VERSION
+        # translation_matrix = og_util.translationMatrix44(10.,10.,10.0)
+        # #print translation_matrix
+        # Xrotation_matrix = og_util.rotationMatrix44(radians(90), 0, 0)
+        # #axe of rotation is relevant to camera but it is apparently Y from a camera point of view
+        # Yrotation_matrix = og_util.rotationMatrix44(0, radians(135), 0)
+        # Xrotation_matrix2 = og_util.rotationMatrix44(radians(-25), 0, 0)
+        # self.cameraMatrix = Xrotation_matrix2.dot(Yrotation_matrix.dot(Xrotation_matrix.dot(translation_matrix)))
+        # self.cameraMatrix = np.linalg.inv(self.cameraMatrix)
+
+        from util.vec3 import vec3
+        eye = vec3(10,10,10)
+        center = vec3(0,0,0)
+        up = vec3(0,0,1)
+        self.cameraMatrix = og_util.lookAtMatrix(eye,center,up)
 
     def centerCameraOnActor(self, actor):
         """
@@ -739,12 +791,12 @@ class GlApplication(object):
         if DEBUG_GLSL: print "perspectiveMatrix"
         if DEBUG_GLSL: print self.perspectiveMatrix
 
-        camMatrix = np.linalg.inv(self.cameraMatrix)
-        GL.glUniformMatrix4fv(self.cameraMatrixUnif, 1, GL.GL_FALSE, np.reshape(camMatrix, (16)))
+        #camMatrix = np.linalg.inv(self.cameraMatrix)
+        GL.glUniformMatrix4fv(self.cameraMatrixUnif, 1, GL.GL_FALSE, np.reshape(self.cameraMatrix, (16)))
         if DEBUG_GLSL: print "camMatrix"
-        if DEBUG_GLSL: print camMatrix
+        if DEBUG_GLSL: print self.cameraMatrix
 
-        lightMatrix = camMatrix[:3, :3]  # Extracts 3*3 matrix out of 4*4
+        lightMatrix = self.cameraMatrix[:3, :3]  # Extracts 3*3 matrix out of 4*4
         if DEBUG_GLSL: print "LightMatrix"
         if DEBUG_GLSL: print lightMatrix
         GL.glUniformMatrix3fv(self.lightingMatrixUnif, 1, GL.GL_FALSE, np.reshape(lightMatrix, (9)))
@@ -770,10 +822,10 @@ class GlApplication(object):
         # Load uniforms
         GL.glUniformMatrix4fv(self.perspectiveMatrixUnif, 1, GL.GL_FALSE, np.reshape(self.perspectiveMatrix, (16)))
 
-        camMatrix = np.linalg.inv(self.cameraMatrix)
-        GL.glUniformMatrix4fv(self.cameraMatrixUnif, 1, GL.GL_FALSE, np.reshape(camMatrix, (16)))
+        #camMatrix = np.linalg.inv(self.cameraMatrix)
+        GL.glUniformMatrix4fv(self.cameraMatrixUnif, 1, GL.GL_FALSE, np.reshape(self.cameraMatrix, (16)))
 
-        lightMatrix = camMatrix[:3, :3]  # Extracts 3*3 matrix out of 4*4
+        lightMatrix = self.cameraMatrix[:3, :3]  # Extracts 3*3 matrix out of 4*4
         GL.glUniformMatrix3fv(self.lightingMatrixUnif, 1, GL.GL_FALSE, np.reshape(lightMatrix, (9)))
 
         GL.glUniform3f(self.lightPosUnif, self.lightPosition[0], self.lightPosition[1], self.lightPosition[2])
