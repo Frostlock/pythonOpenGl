@@ -9,6 +9,10 @@ This repository contains some testing code for my 3D programming experiments in 
 ## About opengl
 To make this run a properly installed opengl capable 3D graphics card is required.
 
+I found the learning curve somewhat challenging. The following tutorials really helped a lot:
+- [Learning Modern 3D Graphics Programming](http://www.arcsynthesis.org/gltut/)
+- [http://learnopengl.com/](http://learnopengl.com/#!Introduction)
+- [http://www.opengl-tutorial.org/](http://www.opengl-tutorial.org/)
 
 <i>
 <b>Copyright notice :)</b><br>
