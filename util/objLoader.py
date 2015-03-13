@@ -1,5 +1,6 @@
 __author__ = 'pi'
 
+# TODO: Make OBJ a subclass of SceneObject
 class OBJ:
     def __init__(self, filename, swapyz=False):
         """Loads a Wavefront OBJ file. """
@@ -58,12 +59,38 @@ class OBJ:
         output += str(self.faces) + '\n'
         return output
 
-class SceneObject:
+class SceneObject(object):
+    '''
+    SceneObject defines an object that can be rendered in OpenGl
+    The number of vertexes = number of normals = number of colors
+    The triangleIndices is a list of counter clock wise triangles defined by vertex/normal/color sequence number
+    '''
+
+    @property
+    def vertices(self):
+        return self._vertices
+
+    @property
+    def normals(self):
+        return self._normals
+
+    @property
+    def colors(self):
+        return self._colors
+
+    @property
+    def triangleIndices(self):
+        return self._triangleIndices
+
+    @property
+    def vertexCount(self):
+        return len(self._vertices) / 4
+
     def __init__(self, objObject):
-        self.vertices = []
-        self.normals = []
-        self.colors = []
-        self.triangleIndex = []
+        self._vertices = []
+        self._normals = []
+        self._colors = []
+        self._triangleIndices = []
 
         color = (0.3, 0.3, 0.3, 0.7)
 
@@ -74,19 +101,109 @@ class SceneObject:
             # Every face should be a counter clockwise triangle
             faceVerts, faceNorms, faceTexCoords, faceMaterial = f
             for i in range (0,3):
-                self.vertices.extend(objObject.vertices[faceVerts[i] - 1])
-                self.vertices.append(1.0) #add W coord
-                self.normals.extend(objObject.normals[faceNorms[i] - 1])
-                self.colors.extend(color)
-                # TODO: very unefficient currently all data is duplicated and the element index is useless
-                self.triangleIndex.append(ind)
-                ind +=1
+                self._vertices.extend(objObject.vertices[faceVerts[i] - 1])
+                self._vertices.append(1.0) #add W coord
+                self._normals.extend(objObject.normals[faceNorms[i] - 1])
+                self._colors.extend(color)
+                # TODO: very unefficient currently all vertex, normals and color data is duplicated for each face.
+                self._triangleIndices.append(ind)
+                ind += 1
             # print len(self.vertices)
             # print len(self.normals)
             # print len(self.colors)
             # print len(self.triangleIndex)
 
+class AxisSceneObject(SceneObject):
+    def __init__(self, scale=1.0, length=2.0, width=0.01):
+        self._vertices = []
+        self._normals = []
+        self._colors = []
+        self._triangleIndices = []
 
+        # X-axis
+        elemOffset = len(self._vertices) / 4
+        # Store the vertex coordinates: 4 components per vertex: x, y, z, w
+        self._vertices.extend((0.0, 0.0, 0.0, 1.0))
+        self._vertices.extend((0.0, -width * scale, 0.0, 1.0))
+        self._vertices.extend((length * scale, 0.0, 0.0, 1.0))
+        self._vertices.extend((0.0, 0.0, 0.0, 1.0))
+        self._vertices.extend((0.0, -width * scale, 0.0, 1.0))
+        self._vertices.extend((length * scale, 0.0, 0.0, 1.0))
+        # Store the vertex color: 4 components per color: R, G, B, A
+        color = (1.0, 0.0, 0.0)
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        # Store the vertex normals: 3 components per normal: x, y, z
+        self._normals.extend((0.0, 0.0, 1.0))
+        self._normals.extend((0.0, 0.0, 1.0))
+        self._normals.extend((0.0, 0.0, 1.0))
+        self._normals.extend((0.0, 0.0, -1.0))
+        self._normals.extend((0.0, 0.0, -1.0))
+        self._normals.extend((0.0, 0.0, -1.0))
+        # Store the indices for the element drawing (triangles, counter clockwise from front)
+        self._triangleIndices.extend((0 + elemOffset, 1 + elemOffset, 2 + elemOffset))
+        self._triangleIndices.extend((2 + elemOffset, 1 + elemOffset, 0 + elemOffset))
+
+        # Y-axis
+        elemOffset = len(self._vertices) / 4
+        # Store the vertex coordinates: 4 components per vertex: x, y, z, w
+        self._vertices.extend((0.0, 0.0, 0.0, 1.0))
+        self._vertices.extend((0.0, 0.0, -width * scale, 1.0))
+        self._vertices.extend((0.0, length * scale, 0.0, 1.0))
+        self._vertices.extend((0.0, 0.0, 0.0, 1.0))
+        self._vertices.extend((0.0, 0.0, -width * scale, 1.0))
+        self._vertices.extend((0.0, length * scale, 0.0, 1.0))
+        # Store the vertex color: 4 components per color: R, G, B, A
+        color = (0.0, 0.0, 1.0)
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        # Store the vertex normals: 3 components per normal: x, y, z
+        self._normals.extend((-1.0, 0.0, 0.0))
+        self._normals.extend((-1.0, 0.0, 0.0))
+        self._normals.extend((-1.0, 0.0, 0.0))
+        self._normals.extend((1.0, 0.0, 0.0))
+        self._normals.extend((1.0, 0.0, 0.0))
+        self._normals.extend((1.0, 0.0, 0.0))
+        # Store the indices for the element drawing (triangles, counter clockwise from front)
+        self._triangleIndices.extend((0 + elemOffset, 1 + elemOffset, 2 + elemOffset))
+        self._triangleIndices.extend((2 + elemOffset, 1 + elemOffset, 0 + elemOffset))
+
+
+        # Z-axis
+        elemOffset = len(self._vertices) / 4
+        # Store the vertex coordinates: 4 components per vertex: x, y, z, w
+        self._vertices.extend((0.0, 0.0, 0.0, 1.0))
+        self._vertices.extend((-width * scale, 0.0, 0.0, 1.0))
+        self._vertices.extend((0.0, 0.0, length * scale, 1.0))
+        self._vertices.extend((0.0, 0.0, 0.0, 1.0))
+        self._vertices.extend((-width * scale, 0.0, 0.0, 1.0))
+        self._vertices.extend((0.0, 0.0, length * scale, 1.0))
+        # Store the vertex color: 4 components per color: R, G, B, A
+        color = (0.0, 1.0, 0.0)
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        self._colors.extend((color[0], color[1], color[2], 1.0))
+        # Store the vertex normals: 3 components per normal: x, y, z
+        self._normals.extend((0.0, -1.0, 0.0))
+        self._normals.extend((0.0, -1.0, 0.0))
+        self._normals.extend((0.0, -1.0, 0.0))
+        self._normals.extend((0.0, 1.0, 0.0))
+        self._normals.extend((0.0, 1.0, 0.0))
+        self._normals.extend((0.0, 1.0, 0.0))
+        # Store the indices for the element drawing (triangles, counter clockwise from front)
+        self._triangleIndices.extend((0 + elemOffset, 1 + elemOffset, 2 + elemOffset))
+        self._triangleIndices.extend((2 + elemOffset, 1 + elemOffset, 0 + elemOffset))
 
 if __name__ == '__main__':
     print "obj loader starting"

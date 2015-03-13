@@ -57,7 +57,7 @@ class GlApplication(object):
         """
         self._level = level
         # Load the mesh for the level in the vertex buffer
-        self.loadVAOLevel()
+        self.loadVAOStaticObjects()
 
     @property
     def displaySize(self):
@@ -182,14 +182,19 @@ class GlApplication(object):
         self.fogActiveUnif = None
 
 
-        self.construct = og_util.plant(3*TILESIZE)
+        #self.construct = og_util.plant(3*TILESIZE)
 
         import util.objLoader
-        obj = util.objLoader.OBJ("./util/cube.obj")
-        self.obj = util.objLoader.SceneObject(obj)
+        cubeObj = util.objLoader.OBJ("./util/cube.obj")
+        lucyObj = util.objLoader.OBJ("./util/lucy.obj")
 
-        obj = util.objLoader.OBJ("./util/lucy.obj")
-        self.levelObj = util.objLoader.SceneObject(obj)
+        self.dynamicObjects = []
+        self.dynamicObjects.append(util.objLoader.SceneObject(cubeObj))
+        self.dynamicObjects.append(util.objLoader.AxisSceneObject(scale=10))
+
+        self.staticObjects = []
+        #self.staticObjects.append(util.objLoader.AxisSceneObject(scale=10))
+        #self.staticObjects.append(util.objLoader.SceneObject(cubeObj))
 
 
     def resizeWindow(self, displaySize):
@@ -298,7 +303,7 @@ class GlApplication(object):
         clock = pygame.time.Clock()
 
         self.freeCamera()
-        self.loadVAOLevel()
+        self.loadVAOStaticObjects()
 
         # Initialize speeds
         rotation_speed = radians(90.0)
@@ -379,7 +384,7 @@ class GlApplication(object):
                 self.centerCameraOnActor(self.game.player)
 
             # Refresh the actors VAO (some actors might have moved)
-            self.loadVAOActors()
+            self.loadVAODynamicObjects()
 
             # Render the 3D view (Vertex Array Buffers
             self.drawVBAs()
@@ -453,7 +458,7 @@ class GlApplication(object):
         # return (playerX, playerY, playerZ, 1.0)
         return (0.0, 0.0, 0.0, 1.0)
 
-    def loadVAOLevel(self):
+    def loadVAOStaticObjects(self):
         """
         Initializes the context of the level VAO
         The level VAO contains the basic level mesh
@@ -469,12 +474,14 @@ class GlApplication(object):
         normalsData = []
         elementData = []
 
-        vertexData.extend(self.levelObj.vertices)
-        colorData.extend(self.levelObj.colors)
-        normalsData.extend(self.levelObj.normals)
-        elementData.extend(self.levelObj.triangleIndex)
-
-        elemOffset = len(elementData)
+        elemOffset = 0
+        for obj in self.staticObjects:
+            vertexData.extend(obj.vertices)
+            colorData.extend(obj.colors)
+            normalsData.extend(obj.normals)
+            for elem in obj.triangleIndices:
+                 elementData.append(elem + elemOffset)
+            elemOffset += obj.vertexCount
 
         # # Store the vertex coordinates
         # for tileRow in self.game.currentLevel.map.tiles:
@@ -591,7 +598,7 @@ class GlApplication(object):
         GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
         GL.glUseProgram(0)
 
-    def loadVAOActors(self):
+    def loadVAODynamicObjects(self):
         """
         Initializes the context of the actors VAO
         This should be called whenever there is a change in actor positions or visibility
@@ -606,21 +613,22 @@ class GlApplication(object):
         normalsData = []
         elementData = []
 
+        elemOffset = 0
+        for obj in self.dynamicObjects:
+            vertexData.extend(obj.vertices)
+            colorData.extend(obj.colors)
+            normalsData.extend(obj.normals)
+            for elem in obj.triangleIndices:
+                 elementData.append(elem + elemOffset)
+            elemOffset += obj.vertexCount
 
-        vertexData.extend(self.obj.vertices)
-        colorData.extend(self.obj.colors)
-        normalsData.extend(self.obj.normals)
-        elementData.extend(self.obj.triangleIndex)
-
-        elemOffset = len(elementData)
-
-        for part in self.construct.parts:
-            vertexData.extend(part.vertexData)
-            colorData.extend(part.colorData)
-            normalsData.extend(part.normalsData)
-            for elem in part.elementData:
-                elementData.append(elem + elemOffset)
-            elemOffset = len(elementData)
+        # for part in self.construct.parts:
+        #     vertexData.extend(part.vertexData)
+        #     colorData.extend(part.colorData)
+        #     normalsData.extend(part.normalsData)
+        #     for elem in part.elementData:
+        #         elementData.append(elem + elemOffset)
+        #     elemOffset = len(elementData)
 
 
         # for vTile in self.game.currentLevel.map.visible_tiles:
@@ -932,8 +940,8 @@ class GlApplication(object):
                 self.centerCameraOnMap()
             elif event.key == pygame.K_o:
                 self.firstPersonCamera()
-            elif event.key == pygame.K_SPACE:
-                self.construct.grow()
+            # elif event.key == pygame.K_SPACE:
+            #     self.construct.grow()
 
     def eventDraggingStart(self):
         self._dragging = True
