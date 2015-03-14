@@ -1018,14 +1018,21 @@ class GlApplication(object):
             # get relative distance of mouse since last call to get_rel()
             mouseMove = pygame.mouse.get_rel()
             mouseSensitivity = 0.01
-            mouseUpDown = -1 * mouseMove[1] * mouseSensitivity
             mouseLeftRight = mouseMove[0] * mouseSensitivity
+            mouseUpDown = mouseMove[1] * mouseSensitivity
 
-            # Use up-down movement for rotation on X axis
-            # Use left-right movement for rotation on Y axis
-            rotation = og_util.rotationMatrix44(mouseUpDown, mouseLeftRight, 0)
+            # Rotate the camera up-down: since the camera is fixed in OpenGl we need to rotate on the X axis
+            X = vec3(1, 0, 0)
+            rotationUpDown = og_util.rotationMatrix(mouseUpDown, X)
 
-            self.cameraMatrix = self.cameraMatrix.dot(rotation)
+            # Rotate the camera left-right: since the camera is fixed in OpenGl we need to rotate on the Y axis
+            Y = vec3(0, 1, 0)
+            rotationLeftRight = og_util.rotationMatrix(mouseLeftRight, Y)
+
+            # TODO: For some reason there is some rotation along the forward axis happening as well now and then :(
+
+            self.cameraMatrix = (self.cameraMatrix.dot(rotationLeftRight)).dot(rotationUpDown)
+
 
 
     def eventZoomIn(self):
