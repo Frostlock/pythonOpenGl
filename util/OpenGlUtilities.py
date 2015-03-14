@@ -39,6 +39,29 @@ def rotationMatrix44(angle_x, angle_y, angle_z):
                   [0.,     0.,             0.,             1.0]], 'f')
     return M
 
+def rotationMatrix(angle, axis):
+    '''
+    http://www.arcsynthesis.org/gltut/Positioning/Tut06%20Rotation.html
+    :param angle: Angle of rotation in radians
+    :param axis: Vec3 defining the axis of the rotation
+    :return: 4x4 matrix for the rotation
+    '''
+    x, y, z = axis
+    C = cos(angle)
+    S = sin(angle)
+    iC = 1 - C
+    iS = 1 - S
+    xx = x*x
+    yy = y*y
+    zz = z*z
+
+    R = np.array([[xx+(1-xx)*C,  iC*x*y+z*S,   iC*x*z-y*S,   0.0],
+                  [iC*x*y-z*S,   yy+(1-yy)*C,  iC*y*z+x*S,   0.0],
+                  [iC*x*z+y*S,   iC*y*z-x*S,   zz+(1-zz)*C,  0.0],
+                  [0.0,          0.0,          0.0,          1.0]], 'f')
+
+    return R
+
 def translationMatrix44(x, y, z):
     """Makes a translation Matrix44."""
 
