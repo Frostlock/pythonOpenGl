@@ -26,6 +26,7 @@ import numpy as np
 
 import util.OpenGlUtilities as og_util
 import util.PyGameUtilities as pg_util
+import util.SceneObject
 
 from util.vec3 import vec3
 
@@ -202,21 +203,17 @@ class GlApplication(object):
         self.fogDistanceUnif = None
         self.fogActiveUnif = None
 
-
-        #self.construct = og_util.plant(3*TILESIZE)
-
-        import util.objLoader
-        cubeObj = util.objLoader.OBJ("./util/cube.obj")
-        lucyObj = util.objLoader.OBJ("./util/lucy.obj")
+        axisObj = util.SceneObject.AxisSceneObject(scale=10)
+        cubeObj = util.SceneObject.OBJ("./util/cube.obj")
+        lucyObj = util.SceneObject.OBJ("./util/lucy.obj")
+        plantObj = util.SceneObject.PlantSceneObject(1.5)
 
         self.dynamicObjects = []
-        self.dynamicObjects.append(util.objLoader.SceneObject(cubeObj))
-        self.dynamicObjects.append(util.objLoader.AxisSceneObject(scale=10))
+        self.dynamicObjects.append(cubeObj)
+        self.dynamicObjects.append(plantObj)
 
         self.staticObjects = []
-        #self.staticObjects.append(util.objLoader.AxisSceneObject(scale=10))
-        #self.staticObjects.append(util.objLoader.SceneObject(cubeObj))
-
+        self.staticObjects.append(axisObj)
 
     def resizeWindow(self, displaySize):
         """
@@ -974,8 +971,11 @@ class GlApplication(object):
                 self.firstPersonCamera()
             elif event.key == pygame.K_l:
                 self.lookAtCamera()
-            # elif event.key == pygame.K_SPACE:
-            #     self.construct.grow()
+            elif event.key == pygame.K_SPACE:
+                #Grow all plant objects
+                for obj in self.dynamicObjects:
+                    if isinstance(obj,util.SceneObject.PlantSceneObject):
+                        obj.grow()
 
     def eventDraggingStart(self):
         self._dragging = True
