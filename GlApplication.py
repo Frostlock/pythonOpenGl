@@ -12,20 +12,22 @@ http://www.willmcgugan.com/blog/tech/2007/6/4/opengl-sample-code-for-pygame/
 
 import pygame
 from pygame.locals import *
+
 from OpenGL import GL
 from OpenGL.GL.ARB.vertex_array_object import glBindVertexArray
 from OpenGL import GLUT
-from OpenGL import GLU
-GLU.gluLookAt
 
 from ctypes import c_void_p
-from math import radians, degrees
+
+from math import radians
 import sys
 
 import numpy as np
 
 import util.OpenGlUtilities as og_util
 import util.PyGameUtilities as pg_util
+
+from util.vec3 import vec3
 
 # TileSize in model space
 TILESIZE = 0.25
@@ -39,49 +41,12 @@ VERTEX_COMPONENTS = 4
 
 # Camera modes
 CAM_FREE = 0
-CAM_MAP = 1
-CAM_ACTOR = 2
-CAM_FIRSTPERSON = 3
+CAM_LOOKAT = 1
+CAM_MAP = 2
+CAM_ACTOR = 3
+CAM_FIRSTPERSON = 4
 
 
-# def ResolveCamPosition():
-#     #glutil::MatrixStack tempMat;
-#     global g_sphereCamRelPos, g_camTarget
-#
-#     phi = radians(g_sphereCamRelPos[0])
-#     theta = radians(g_sphereCamRelPos[1] + 90.0)
-#
-#     fSinTheta = np.sin(theta)
-#     fCosTheta = np.cos(theta)
-#     fCosPhi = np.cos(phi)
-#     fSinPhi = np.sin(phi)
-#
-#     dirToCamera = (fSinTheta * fCosPhi, fCosTheta, fSinTheta * fSinPhi)
-#     dirToCamera[0] = dirToCamera[0] * g_sphereCamRelPos[2] + g_camTarget[0]
-#     dirToCamera[1] = dirToCamera[1] * g_sphereCamRelPos[2] + g_camTarget[1]
-#     dirToCamera[2] = dirToCamera[2] * g_sphereCamRelPos[2] + g_camTarget[2]
-#     return dirToCamera
-#
-# glm::mat4 CalcLookAtMatrix(const glm::vec3 &cameraPt, const glm::vec3 &lookPt, const glm::vec3 &upPt)
-# {
-# 	glm::vec3 lookDir = glm::normalize(lookPt - cameraPt);
-# 	glm::vec3 upDir = glm::normalize(upPt);
-#
-# 	glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, upDir));
-# 	glm::vec3 perpUpDir = glm::cross(rightDir, lookDir);
-#
-# 	glm::mat4 rotMat(1.0f);
-# 	rotMat[0] = glm::vec4(rightDir, 0.0f);
-# 	rotMat[1] = glm::vec4(perpUpDir, 0.0f);
-# 	rotMat[2] = glm::vec4(-lookDir, 0.0f);
-#
-# 	rotMat = glm::transpose(rotMat);
-#
-# 	glm::mat4 transMat(1.0f);
-# 	transMat[3] = glm::vec4(-cameraPt, 1.0f);
-#
-# 	return rotMat * transMat;
-# }
 
 class GlApplication(object):
 
@@ -144,6 +109,19 @@ class GlApplication(object):
     def cameraMatrix(self):
         """
         Returns the camera matrix
+
+        For reference:
+
+        RT = right
+        UP = up
+        BK = back
+        POS = position/translation
+        US = uniform scale
+
+                       | [RT.x] [UP.x] [BK.x] [POS.x] |
+        cameraMatrix = | [RT.y] [UP.y] [BK.y] [POS.y] |
+                       | [RT.z] [UP.z] [BK.z] [POS.z] |
+                       | [    ] [    ] [    ] [US   ] |
         """
         return self._cameraMatrix
 
@@ -345,7 +323,7 @@ class GlApplication(object):
 
         clock = pygame.time.Clock()
 
-        self.freeCamera()
+        self.lookAtCamera()
         self.loadVAOStaticObjects()
 
         # Initialize speeds
@@ -438,7 +416,7 @@ class GlApplication(object):
             # Show the screen
             pygame.display.flip()
 
-    def freeCamera(self):
+    def lookAtCamera(self):
         # OLD VERSION
         # translation_matrix = og_util.translationMatrix44(10.,10.,10.0)
         # #print translation_matrix
@@ -449,11 +427,13 @@ class GlApplication(object):
         # self.cameraMatrix = Xrotation_matrix2.dot(Yrotation_matrix.dot(Xrotation_matrix.dot(translation_matrix)))
         # self.cameraMatrix = np.linalg.inv(self.cameraMatrix)
 
-        from util.vec3 import vec3
+        self.cameraMode = CAM_LOOKAT
+
         eye = vec3(10,10,10)
         center = vec3(0,0,0)
         up = vec3(0,0,1)
-        self.cameraMatrix = og_util.lookAtMatrix(eye,center,up)
+
+        self.cameraMatrix = og_util.lookAtMatrix44(eye,center,up)
 
     def centerCameraOnActor(self, actor):
         """
@@ -992,6 +972,8 @@ class GlApplication(object):
                 self.centerCameraOnMap()
             elif event.key == pygame.K_o:
                 self.firstPersonCamera()
+            elif event.key == pygame.K_l:
+                self.lookAtCamera()
             # elif event.key == pygame.K_SPACE:
             #     self.construct.grow()
 
@@ -1017,48 +999,34 @@ class GlApplication(object):
             # get relative distance of mouse since last call to get_rel()
             mouseMove = pygame.mouse.get_rel()
 
-            # Get the left right direction of the camera from the current modelview matrix
-            x = self.cameraMatrix[0, 0]
-            y = self.cameraMatrix[1, 0]
-            z = self.cameraMatrix[2, 0]
-            w = self.cameraMatrix[3, 0]
-            factor = -1.0 * mouseMove[0] / (w * w)
-            # Translate along this direction
-            translation_matrix = og_util.translationMatrix44(factor * x, factor * y, factor * z)
-            self.cameraMatrix = translation_matrix.dot(self.cameraMatrix)
+            cameraTranslation = vec3(self.cameraMatrix[3, :3])
+            mouseSensitivity = 1 / cameraTranslation.length()
 
-            # Get the up down direction of the camera from the current modelview matrix
-            x = self.cameraMatrix[0, 1]
-            y = self.cameraMatrix[1, 1]
-            z = self.cameraMatrix[2, 1]
-            w = self.cameraMatrix[3, 1]
-            factor = 1.0 * mouseMove[1] / (w * w)
-            print self.cameraMatrix[:, 1]
-            # Translate along this direction
-            translation_matrix = og_util.translationMatrix44(factor * x, factor * y, factor * z)
-            self.cameraMatrix = translation_matrix.dot(self.cameraMatrix)
+            # Get the left right direction of the camera from the current camera matrix
+            right = vec3(self.cameraMatrix[:3, 0])
+            mouseFactor = mouseMove[0] * mouseSensitivity
+            right_translate = og_util.translationMatrix44(right.x * mouseFactor, right.y * mouseFactor, right.z * mouseFactor)
+
+            # Get the up down direction of the camera from the current camera matrix
+            up = vec3(self.cameraMatrix[:3, 1])
+            mouseFactor = -1 * mouseMove[1] * mouseSensitivity
+            up_translate = og_util.translationMatrix44(up.x * mouseFactor, up.y * mouseFactor, up.z * mouseFactor)
+
+            self.cameraMatrix = up_translate.dot(right_translate.dot(self.cameraMatrix))
 
         elif self._rotating:
             # get relative distance of mouse since last call to get_rel()
             mouseMove = pygame.mouse.get_rel()
+            mouseSensitivity = 0.01
+            mouseUpDown = -1 * mouseMove[1] * mouseSensitivity
+            mouseLeftRight = mouseMove[0] * mouseSensitivity
 
-            # Get the left right direction of the camera from the current modelview matrix
-            # We'll use this as the rotation axis for the up down movement
-            x = self.cameraMatrix[0, 0] * mouseMove[1]
-            y = self.cameraMatrix[1, 0] * mouseMove[1]
-            z = self.cameraMatrix[2, 0] * mouseMove[1]
-            w = self.cameraMatrix[3, 0] * 100
-            rotation_matrix = og_util.rotationMatrix44(x / w, y / w, z / w)
-            self.cameraMatrix = rotation_matrix.dot(self.cameraMatrix)
+            # Use up-down movement for rotation on X axis
+            # Use left-right movement for rotation on Y axis
+            rotation = og_util.rotationMatrix44(mouseUpDown, mouseLeftRight, 0)
 
-            # Get the up down direction of the camera from the current modelview matrix
-            # We'll use this as the rotation axis for the left right movement
-            x = self.cameraMatrix[0, 1] * -1.0 * mouseMove[0]
-            y = self.cameraMatrix[1, 1] * -1.0 * mouseMove[0]
-            z = self.cameraMatrix[2, 1] * -1.0 * mouseMove[0]
-            w = self.cameraMatrix[3, 1] * 100
-            rotation_matrix = og_util.rotationMatrix44(x / w, y / w, z / w)
-            self.cameraMatrix = rotation_matrix.dot(self.cameraMatrix)
+            self.cameraMatrix = self.cameraMatrix.dot(rotation)
+
 
     def eventZoomIn(self):
         """
@@ -1066,9 +1034,9 @@ class GlApplication(object):
         This will translate the camera matrix to zoom in.
         """
         # Get the direction of the camera from the camera matrix
-        heading = self.cameraMatrix[:3, 2] * -1  # backward
-        # Translate the camera along z component of this direction
-        translation_matrix = og_util.translationMatrix44(0., 0., heading[2])
+        heading = vec3(self.cameraMatrix[:3, 2] * -1)  # backward
+        # Translate the camera along this direction
+        translation_matrix = og_util.translationMatrix44(heading.x, heading.y, heading.z)
         self.cameraMatrix = translation_matrix.dot(self.cameraMatrix)
 
     def eventZoomOut(self):
@@ -1077,9 +1045,9 @@ class GlApplication(object):
         This will translate the camera matrix to zoom out.
         """
         # Get the direction of the camera from the camera matrix
-        heading = self.cameraMatrix[:3, 2]  # Forward
-        # Translate the camera along z component of this direction
-        translation_matrix = og_util.translationMatrix44(0., 0., heading[2])
+        heading = vec3(self.cameraMatrix[:3, 2])  # Forward
+        # Translate the camera along this direction
+        translation_matrix = og_util.translationMatrix44(heading.x, heading.y, heading.z)
         self.cameraMatrix = translation_matrix.dot(self.cameraMatrix)
 
 

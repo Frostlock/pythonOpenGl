@@ -1,16 +1,21 @@
 import numpy as np
+
+# For performance use the math functions, numpy also has these for multi dimensional arrays.
+# For single values the math variants are faster
+from math import sin, cos
+
 import random
 #from math import cos,sin
 
 def rotationMatrix44(angle_x, angle_y, angle_z):
     """Makes a rotation Matrix44 about 3 axis."""
 
-    cx = np.cos(angle_x)
-    sx = np.sin(angle_x)
-    cy = np.cos(angle_y)
-    sy = np.sin(angle_y)
-    cz = np.cos(angle_z)
-    sz = np.sin(angle_z)
+    cx = cos(angle_x)
+    sx = sin(angle_x)
+    cy = cos(angle_y)
+    sy = sin(angle_y)
+    cz = cos(angle_z)
+    sz = sin(angle_z)
 
     sxsy = sx*sy
     cxsy = cx*sy
@@ -23,10 +28,10 @@ def rotationMatrix44(angle_x, angle_y, angle_z):
     #E = cos(angle_z)
     #F = sin(angle_z)
 
-#     |  CE      -CF       D   0 |
-#M  = |  BDE+AF  -BDF+AE  -BC  0 |
-#     | -ADE+BF   ADF+BE   AC  0 |
-#     |  0        0        0   1 |
+    #     |  CE      -CF       D   0 |
+    # M = |  BDE+AF  -BDF+AE  -BC  0 |
+    #     | -ADE+BF   ADF+BE   AC  0 |
+    #     |  0        0        0   1 |
 
     M = np.array([[cy*cz,  sxsy*cz+cx*sz,  -cxsy*cz+sx*sz, 0.0],
                   [-cy*sz, -sxsy*sz+cx*cz, cxsy*sz+sx*cz,  0.0],
@@ -40,7 +45,7 @@ def translationMatrix44(x, y, z):
     # Translation(x,y,z)
 
     #     | 1  0  0  x |
-    #M  = | 0  1  0  y |
+    # M = | 0  1  0  y |
     #     | 0  0  1  z |
     #     | 0  0  0  1 |
 
@@ -59,49 +64,12 @@ def translationMatrix44(x, y, z):
 #                   [0.,       0.,       0.,       1.]], 'f')
 #     return M
 
-def old_lookAtMatrix(eye, center, up):
-    '''
-    e: eye position
-    c: lookat center
-    u: up vector
-
-    Z = normalize(e - c)
-    X = normalize(up x Z)
-    Y = Z x X
-
-    M1 is a matrix whose columns are (X, 0), (Y, 0), (Z, 0) (0,0,0,1)
-    M2 is a matrix whose columns are (1,0,0,0), (0,1,0,0), (0,0,1,0), (-e.x, -e.y, -e.z, 1)
-
-    The lookat matrix is the product of M1 and M2
-
-    L = M1 * M2
-    :param eye:
-    :param center:
-    :param up:
-    :return:
-    '''
-    Z = (eye - center).normalize()
-    X = up.cross(Z).normalize()
-    Y = Z.cross(X)
-
-    M1 = np.array([[X.x,      X.y,      X.z,      0.],
-                  [ Y.x,      Y.y,      Y.z,      0.],
-                  [ Z.x,      Z.y,      Z.z,      0.],
-                  [ 0.,       0.,       0.,       1.]], 'f')
-
-    M2 = np.array([[1.,       0.,       0.,       0.],
-                  [ 0.,       1.,       0.,       0.],
-                  [ 0.,       0.,       1.,       0.],
-                  [ -eye.x,   -eye.y,   -eye.z,   1.]], 'f')
-
-    return M1.dot(M2)
-
-def lookAtMatrix(eye, center, up):
+def lookAtMatrix44(eye, center, up):
     '''
     Based on http://learnopengl.com/#!Getting-started/Camera
-    :param eye:
-    :param center:
-    :param up:
+    :param eye: vec3 - x,y,z coordinate representing the position of the camera
+    :param center: vec3 - x,y,z coordinate towards which the camera is looking
+    :param up: vec3 - x,y,z coordinate used to determine what is up for the camera
     :return:
     '''
     M1 = np.array([[1.,       0.,       0.,       0.],
@@ -120,7 +88,6 @@ def lookAtMatrix(eye, center, up):
                   [ 0.,       0.,       0.,       1.]], 'f')
 
     return M1.dot(M2)
-
 
 class plant():
     def __init__(self,partSize):
@@ -197,7 +164,7 @@ if __name__ == '__main__':
     eye = vec3(1.0, 1.0, 1.0)
     center = vec3(0.0, 0.0, 0.0)
     up = vec3(0.0, 0.0, 1.0)
-    M = lookAtMatrix(eye,center,up)
+    M = lookAtMatrix44(eye,center,up)
     print M
 
     # test = vec3(3,1,2)
