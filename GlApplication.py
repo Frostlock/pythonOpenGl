@@ -325,7 +325,7 @@ class GlApplication(object):
 
         # Initialize speeds
         rotation_speed = radians(90.0)
-        movement_speed = 5.0
+        movement_speed = 25.0
 
         while True:
             # handle pygame (GUI) events
@@ -340,6 +340,7 @@ class GlApplication(object):
             time_passed_seconds = time_passed / 1000.
             if time_passed_seconds <> 0: self.FPS = 1 / time_passed_seconds
 
+            #get a tuple with the press status of all keys
             pressed = pygame.key.get_pressed()
 
             # Reset rotation and movement directions
@@ -375,25 +376,31 @@ class GlApplication(object):
                 self.cameraMode = CAM_FREE
             if pressed[K_HOME]:
                 # movement_direction.z = -1.0
-                movement_direction[2] = -1.0
+                movement_direction[2] = +1.0
                 self.cameraMode = CAM_FREE
             elif pressed[K_END]:
                 # movement_direction.z = +1.0
-                movement_direction[2] = +1.0
+                movement_direction[2] = -1.0
                 self.cameraMode = CAM_FREE
 
             # Calculate rotation matrix and multiply by camera matrix    
             rotation = rotation_direction * rotation_speed * time_passed_seconds
             rotation_matrix = og_util.rotationMatrix44(*rotation)
-            # if you do this the other way around you rotate the world before moving the camera
-            self.cameraMatrix = rotation_matrix.dot(self.cameraMatrix)
+            #print rotation_matrix
+            # "rotate the world around the origin"
+            #self.cameraMatrix = rotation_matrix.dot(self.cameraMatrix)
+            # "rotate the camera"
+            self.cameraMatrix = self.cameraMatrix.dot(rotation_matrix)
 
             # Calcluate movment and add it to camera matrix translate
             heading = self.cameraMatrix[:3, 2]  # Forward direction
             movement = heading * movement_direction * movement_speed * time_passed_seconds
             movement_matrix = og_util.translationMatrix44(*movement)
-            # if you do this the other way around you move the world before moving the camera
-            self.cameraMatrix = movement_matrix.dot(self.cameraMatrix)
+            # "move the world"
+            #Since the camera direction is always the Z-axis this would just move the world up and down along the Z-axis
+            #self.cameraMatrix = movement_matrix.dot(self.cameraMatrix)
+            # "move the camera
+            self.cameraMatrix = self.cameraMatrix.dot(movement_matrix)
 
             # First person camera
             if self.cameraMode == CAM_FIRSTPERSON:
