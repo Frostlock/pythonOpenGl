@@ -204,7 +204,8 @@ class GlApplication(object):
         self.fogActiveUnif = None
 
         axisObj = util.SceneObject.AxisSceneObject(scale=10)
-        cubeObj = util.SceneObject.OBJ("./util/cube.obj")
+        #cubeObj = util.SceneObject.OBJ("./util/cube.obj")
+        cubeObj = util.SceneObject.Cube()
         lucyObj = util.SceneObject.OBJ("./util/lucy.obj")
         plantObj = util.SceneObject.PlantSceneObject(1.5)
 
