@@ -313,22 +313,6 @@ class Cube(SceneObject):
         self._triangleIndices.extend((14 + elemOffset, 17 + elemOffset, 20 + elemOffset))
         self._triangleIndices.extend((14 + elemOffset, 20 + elemOffset, 23 + elemOffset))
 
-
-        #
-        # self._triangleIndices.extend((0 + elemOffset, 15 + elemOffset, 3 + elemOffset))
-        # self._triangleIndices.extend((0 + elemOffset, 12 + elemOffset, 15 + elemOffset))
-        # self._triangleIndices.extend((4 + elemOffset, 18 + elemOffset, 6 + elemOffset))
-        # self._triangleIndices.extend((4 + elemOffset, 16 + elemOffset, 18 + elemOffset))
-        # self._triangleIndices.extend((7 + elemOffset, 21 + elemOffset, 9 + elemOffset))
-        # self._triangleIndices.extend((7 + elemOffset, 19 + elemOffset, 21 + elemOffset))
-        # self._triangleIndices.extend((10 + elemOffset, 13 + elemOffset, 1 + elemOffset))
-        # self._triangleIndices.extend((10 + elemOffset, 22 + elemOffset, 13 + elemOffset))
-        # self._triangleIndices.extend((2 + elemOffset, 8 + elemOffset, 11 + elemOffset))
-        # self._triangleIndices.extend((2 + elemOffset, 5 + elemOffset, 8 + elemOffset))
-        # self._triangleIndices.extend((14 + elemOffset, 20 + elemOffset, 17 + elemOffset))
-        # self._triangleIndices.extend((14 + elemOffset, 23 + elemOffset, 20 + elemOffset))
-        #
-
 class PlantSceneObject(SceneObject):
     def __init__(self,partSize):
         super(PlantSceneObject, self).__init__()
